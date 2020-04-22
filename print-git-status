@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+#
+# 今いるディレクトリのgitステータスを表示する
+# gitを一回しか呼ばないので高速
+# ~/.zshrcでRPROMPTとして使っている
+# 参考: 
+# - https://github.com/olivierverdier/zsh-git-prompt (これを改良した)
+# - https://git-scm.com/docs/git-status#_options (git statusのオプション)
+
+
+# %{ %}はRPROMPTがずれるのを防ぐため(https://qiita.com/peccul/items/c3d3541ae9e6587712df)
+BLACK   = '%{\033[30m%}'
+RED     = '%{\033[31m%}'
+GREEN   = '%{\033[32m%}'
+YELLOW  = '%{\033[33m%}'
+BLUE    = '%{\033[34m%}'
+MAGENTA = '%{\033[35m%}'
+CYAN    = '%{\033[36m%}'
+WHITE   = '%{\033[37m%}'
+BOLD    = '%{\033[01m%}' #太字
+RESET   = '%{\033[0m%}'
+
+__REPLACE = '<REPLACE>'
+
+'''
+config params
+'''
+GIT_STATUS_PREFIX    = '('
+GIT_STATUS_SUFFIX    = ')'
+GIT_STATUS_SEPARATOR = '|'
+GIT_STATUS_BRANCH    = MAGENTA + BOLD        + __REPLACE + RESET
+GIT_STATUS_STAGED    = YELLOW         + '●'  + __REPLACE + RESET
+GIT_STATUS_CONFLICTS = RED            + '✖'  + __REPLACE + RESET
+GIT_STATUS_CHANGED   = CYAN           + '✚'  + __REPLACE + RESET
+GIT_STATUS_BEHIND    = WHITE          + '↓'  + __REPLACE + RESET
+GIT_STATUS_AHEAD     = WHITE          + '↑'  + __REPLACE + RESET
+GIT_STATUS_UNTRACKED = WHITE          + '…'  + __REPLACE + RESET
+GIT_STATUS_CLEAN     = GREEN   + BOLD + '✔'              + RESET
+
+
+import subprocess as sb
+
+proc = sb.Popen(['git', 'status', '--porcelain=v2', '--branch'], stdin=sb.DEVNULL, stdout=sb.PIPE, stderr=sb.PIPE)
+
+status_dict = {
+    'head':    '-',
+    'ahead':   '0',
+    'behind':  '0',
+    'staged':    0,
+    'conflicts': 0,
+    'changed':   0,
+    'untracked': 0
+}
+
+b_output, b_error = proc.communicate()
+error = b_error.decode()
+
+if 'Not a git repository' in error:
+    exit(0)
+elif 'unsupported porcelain version' in error:
+    print('Error: Your git doesn\'t support "--porcelain=v2" option. Please update your git!')
+    exit(1)
+
+git_status = b_output.decode()
+
+for line in git_status.split('\n'):
+    if len(line) == 0: continue
+    items = line.split(' ')
+    if items[0] == '#':
+        # branch情報
+        if items[1].endswith('head'):
+            status_dict['head'] = items[2]
+        elif items[1].endswith('ab'):
+            status_dict['ahead']  = items[2].replace('+', '')
+            status_dict['behind'] = items[3].replace('-', '')
+
+    elif items[0] == '?':
+        # untracked items
+        status_dict['untracked'] += 1
+    
+    else:
+        # tracked and modified items
+        index = items[1][0]
+        work_tree = items[1][1]
+
+        if work_tree == 'M' or (index != 'D' and work_tree == 'D'):
+            status_dict['changed'] += 1
+        elif index == 'U' or work_tree == 'U' or (index == 'A' and work_tree == 'A') or (index == 'D' and work_tree == 'D'):
+            status_dict['conflict'] += 1
+        elif work_tree in 'MRC' or index == 'A' or index == 'D':
+            status_dict['staged'] += 1
+        
+result = ''
+result += GIT_STATUS_PREFIX
+result += GIT_STATUS_BRANCH.replace(__REPLACE, status_dict['head'])
+
+if int(status_dict['behind']) > 0:
+    result += GIT_STATUS_BEHIND.replace(__REPLACE, status_dict['behind'])
+if int(status_dict['ahead']) > 0:
+    result += GIT_STATUS_AHEAD.replace(__REPLACE, status_dict['ahead'])
+
+result += GIT_STATUS_SEPARATOR
+
+if status_dict['staged'] > 0:
+    result += GIT_STATUS_STAGED.replace(__REPLACE, str(status_dict['staged']))
+if status_dict['conflicts'] > 0:
+    result += GIT_STATUS_CONFLICTS.replace(__REPLACE, str(status_dict['conflicts']))
+if status_dict['changed'] > 0:
+    result += GIT_STATUS_CHANGED.replace(__REPLACE, str(status_dict['changed']))
+if status_dict['untracked'] > 0:
+    result += GIT_STATUS_UNTRACKED.replace(__REPLACE, str(status_dict['untracked']))
+if result.endswith(GIT_STATUS_SEPARATOR): # all 0
+    result += GIT_STATUS_CLEAN
+
+
+result += GIT_STATUS_SUFFIX
+
+print(result)

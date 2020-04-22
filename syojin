@@ -1,0 +1,37 @@
+#!/usr/bin/env python
+#
+# 精進の際に1つcppファイルを生成するコマンド
+# syojin [問題URL or ファイル名]
+
+import sys, string, subprocess, urllib
+from modules.atcoder import utils as atcoder_utils
+from urllib import parse
+ 
+def is_url(text) :
+    url_param = parse.urlparse(text)
+    return len(url_param.scheme) > 0
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage:\n$ syojin [task URL]\nor\n$ syojin [file name]")
+        exit(1)
+
+    if is_url(sys.argv[1]):
+        path_arr = sys.argv[1].replace(atcoder_utils.BASE_URL, '/').split('/')
+        contest_path = '/'.join(path_arr[:3])
+        print(path_arr)
+
+        contest_prefix = atcoder_utils.ask_contest_prefix(contest_path)
+
+        task_dict = atcoder_utils.get_task_names(contest_path)
+
+        task_char = path_arr[-1][-1].upper()
+        if task_char.isdecimal():
+            task_char = string.ascii_uppercase[int(task_char) - 1]
+
+        file_name = atcoder_utils.gen_file_name(contest_prefix, task_char, task_dict[task_char])
+    else:
+        file_name = sys.argv[1]
+
+    atcoder_utils.create_template_file(file_name)

@@ -1,0 +1,55 @@
+#!/usr/bin/env python
+# 
+# コンテスト後に問題名を取得してファイルに反映させるコマンド
+# ちなみに1行目のやつはShebang(シバン)というらしいぞ
+#
+# > after-contest ([コンテストURL]) // URLを指定しない場合は直近のコンテストを使う
+
+import os, sys, subprocess
+from modules.atcoder import utils as atcoder_utils
+
+
+# org_nameという名前のファイルが存在して、
+# かつtemplaete_strと異なる内容の場合のみ、
+# ファイル名をnew_nameに変更する
+# 名前を変更した場合のみTrueを返す
+def change_task_name(org_name, new_name, templaete_str):
+    if os.path.exists(org_name):
+        with open(org_name) as f:
+            code_str = f.read()
+
+        if code_str == template_str:
+            print("{} hasn't been modified.".format(org_name))
+            return False
+        else:
+            print(new_name)
+            os.rename(org_name, new_name)
+            subprocess.call(['code', new_name])
+            return True
+    else:
+        print("{} doesn't exists.".format(org_name))
+        return False
+
+
+
+if __name__ == "__main__":
+
+    contest_path, contest_name = atcoder_utils.get_contest_info(sys.argv[1] if len(sys.argv) == 2 else None)
+
+    print("extracting task names from {}...".format(contest_name))
+
+    prefix = atcoder_utils.ask_contest_prefix(contest_path)
+
+    task_dict = atcoder_utils.get_task_names(contest_path)
+
+
+    # 編集したかどうかをチェックするために、テンプレートコードを取得
+    with open(atcoder_utils.TEMPLATE_PATH) as f:
+        template_str = f.read()
+
+    # 各問題について処理
+    for char, name in task_dict.items():
+        org_name = char + atcoder_utils.EXTENTION
+        new_name = atcoder_utils.gen_file_name(prefix, char, name)
+        change_task_name(org_name, new_name, template_str)
+    

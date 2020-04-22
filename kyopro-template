@@ -1,0 +1,8 @@
+# !/bin/sh
+#
+# 精進の際に1つcppファイルを生成するコマンド
+
+cat ~/competitive_programming/template.cpp > $1
+code -g $1:13:13
+
+exit 0

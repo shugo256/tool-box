@@ -1,0 +1,22 @@
+#!/usr/bin/env python
+#
+# contest開始前にファイルをまとめて作るコマンド
+# contest [問題数]
+
+import sys, subprocess
+from string import ascii_uppercase
+from modules.atcoder.utils import create_template_file
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage:\n$ contest [problem_num]")
+        exit(1)
+    
+    problem_num = int(sys.argv[1])
+
+    for c in ascii_uppercase[:problem_num]:
+        create_template_file(c)
+
+
+    subprocess.call(['code', '-g', 'A.cpp:13:13'])
+    print("ぞい！！！")

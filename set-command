@@ -1,0 +1,7 @@
+# !/bin/sh
+#
+# 自作コマンドに実行属性をつける
+
+chmod u+x $1
+echo "original command "$1" enabled"
+exit 0
