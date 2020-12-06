@@ -86,7 +86,7 @@ for line in git_status.split('\n'):
         if work_tree == 'M' or (index != 'D' and work_tree == 'D'):
             status_dict['changed'] += 1
         elif index == 'U' or work_tree == 'U' or (index == 'A' and work_tree == 'A') or (index == 'D' and work_tree == 'D'):
-            status_dict['conflict'] += 1
+            status_dict['conflicts'] += 1
         elif work_tree in 'MRC' or index == 'A' or index == 'D':
             status_dict['staged'] += 1
         
